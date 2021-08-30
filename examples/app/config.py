@@ -12,6 +12,9 @@ broker_transport_options = {
         },
         'fifo_req_aries': {
             'url': 'http://localhost:9324/queue/fifo_req_aries',
+        },
+        'fifo_res': {
+            'url': 'http://localhost:9324/queue/fifo_res'
         }
     }
 }
@@ -21,3 +24,4 @@ task_routes = {
 }
 
 # worker_consumer = 'src.ergo_consumer:ErgoConsumer'
+result_backend = 'src.sqs_backend:SQSBackend://http://localhost:9324/queue/fifo_res'

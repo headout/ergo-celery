@@ -1,12 +1,29 @@
+import uuid
 from kombu.serialization import dumps, loads
 from kombu.transport.SQS import (Channel, Transport, UndefinedQueueException,
                                  logger)
 
 
-class Channel(Channel):
+class ErgoChannel(Channel):
     DEFAULT_CONTENT_TYPE = 'application/json'
     DEFAULT_CONTENT_ENCODING = 'utf-8'
     MESSAGE_ATTRIBUTES = ['ApproximateReceiveCount']
+
+    def put_bulk(self, queue, messages, **kwargs):
+        q_url = self._new_queue(queue)
+        entries = [
+            {
+                'Id': str(idx),
+                'MessageBody': dumps(msg, 'json')[2],
+                'MessageGroupId': msg['taskId'],
+                'MessageDeduplicationId': str(uuid.uuid4())
+            }
+            for idx, msg in enumerate(messages)
+        ]
+        logger.info(f'Request to push: {entries}')
+        c = self.sqs(queue=self.canonical_queue_name(queue))
+        resp = c.send_message_batch(QueueUrl=q_url, Entries=entries, **kwargs)
+        return (resp.get('Successful', []), resp.get('Failed', []))
 
     def _to_proto1(self, orig_payload, sqs_msg):
         payload = dict()
@@ -66,4 +83,4 @@ class Channel(Channel):
 
 
 class SQSTransport(Transport):
-    Channel = Channel
+    Channel = ErgoChannel
