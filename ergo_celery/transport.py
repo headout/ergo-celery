@@ -1,13 +1,24 @@
 import uuid
+from json.decoder import JSONDecodeError
+from queue import Empty
+
+from kombu.asynchronous.aws.sqs.message import AsyncMessage
 from kombu.serialization import dumps, loads
-from kombu.transport.SQS import (Channel, Transport, UndefinedQueueException,
-                                 logger)
+from kombu.transport import SQS
+
+logger = SQS.logger
 
 
-class ErgoChannel(Channel):
+class ErgoChannel(SQS.Channel):
     DEFAULT_CONTENT_TYPE = 'application/json'
     DEFAULT_CONTENT_ENCODING = 'utf-8'
     MESSAGE_ATTRIBUTES = ['ApproximateReceiveCount']
+
+    def basic_reject(self, delivery_tag, requeue=False):
+        if not requeue:
+            self.basic_ack(delivery_tag, requeue)
+        else:
+            super().basic_reject(delivery_tag, requeue)
 
     def put_bulk(self, queue, messages, **kwargs):
         q_url = self._new_queue(queue)
@@ -47,11 +58,66 @@ class ErgoChannel(Channel):
 
     def _message_to_python(self, message, queue_name, queue):
         payload = super()._message_to_python(message, queue_name, queue)
+        logger.warn(payload)
         sqs_msg = payload['properties']['delivery_info']['sqs_message']
         if 'headers' not in payload and sqs_msg['Attributes'].get('MessageGroupId', None):
             # Detected Ergo Protocol, so convert it to Proto 1-compatible schema
             payload = self._to_proto1(payload, sqs_msg)
         return payload
+
+    def _on_messages_ready(self, queue, qname, messages):
+        if 'Messages' in messages and messages['Messages']:
+            callbacks = self.connection._callbacks
+            for msg in messages['Messages']:
+                try:
+                    msg_parsed = self._message_to_python(msg, qname, queue)
+                except JSONDecodeError as e:
+                    logger.error(f'Received undecodable message', exc_info=e)
+                    continue
+                callbacks[qname](msg_parsed)
+
+    # TODO: Better to add the FIFO queue support in Kombu itself (reminder: Raise a PR)
+    def _get_bulk(self, queue,
+                  max_if_unlimited=SQS.SQS_MAX_MESSAGES, callback=None):
+        """Try to retrieve multiple messages off ``queue``.
+
+        Where :meth:`_get` returns a single Payload object, this method
+        returns a list of Payload objects.  The number of objects returned
+        is determined by the total number of messages available in the queue
+        and the number of messages the QoS object allows (based on the
+        prefetch_count).
+
+        Note:
+            Ignores QoS limits so caller is responsible for checking
+            that we are allowed to consume at least one message from the
+            queue.  get_bulk will then ask QoS for an estimate of
+            the number of extra messages that we can consume.
+
+        Arguments:
+            queue (str): The queue name to pull from.
+
+        Returns:
+            List[Message]
+        """
+        # drain_events calls `can_consume` first, consuming
+        # a token, so we know that we are allowed to consume at least
+        # one message.
+
+        # Note: ignoring max_messages for SQS with boto3
+        max_count = self._get_message_estimate()
+        if max_count:
+            q_url = self._new_queue(queue)
+            resp = self.sqs(queue=queue).receive_message(
+                QueueUrl=q_url, MaxNumberOfMessages=max_count,
+                WaitTimeSeconds=self.wait_time_seconds,
+                AttributeNames=['MessageGroupId'])
+            if resp.get('Messages'):
+                for m in resp['Messages']:
+                    m['Body'] = AsyncMessage(body=m['Body']).decode()
+                for msg in self._messages_to_python(resp['Messages'], queue):
+                    self.connection._deliver(msg, queue)
+                return
+        raise Empty()
 
     # TODO: Better to add the FIFO queue support in Kombu itself (reminder: Raise a PR)
     def _get_from_sqs(self, queue,
@@ -63,7 +129,7 @@ class ErgoChannel(Channel):
         connection = connection if connection is not None else queue.connection
         if self.predefined_queues:
             if queue not in self._queue_cache:
-                raise UndefinedQueueException((
+                raise SQS.UndefinedQueueException((
                     "Queue with name '{}' must be defined in "
                     "'predefined_queues'."
                 ).format(queue))
@@ -82,5 +148,5 @@ class ErgoChannel(Channel):
         )
 
 
-class SQSTransport(Transport):
+class SQSTransport(SQS.Transport):
     Channel = ErgoChannel

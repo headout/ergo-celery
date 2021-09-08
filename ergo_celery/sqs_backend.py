@@ -7,13 +7,14 @@ logger = get_logger(__name__)
 
 STATUS_MAPPING = {
     'SUCCESS': 200,
-    'FAILURE': 400
+    'FAILURE': 400,
+    'FAILURE.NotRegistered': 404
 }
 
 class SQSBackend(Backend):
     def __init__(self, *args, max_buffer_size=SQS_MAX_MESSAGES, **kwargs):
         super().__init__(*args, **kwargs)
-        self.max_buffer_size = max_buffer_size
+        self.max_buffer_size = 1 or max_buffer_size
         self._pending_results = {}
         self._connection = self.connection_for_write()
 
@@ -42,16 +43,25 @@ class SQSBackend(Backend):
             if len(self._pending_results) == self.max_buffer_size:
                 self._drain_results()
 
+    def _get_result_state(self, state, data):
+        result = STATUS_MAPPING[state]
+        if result == 400 and 'exc_type' in data:
+            try:
+                result = STATUS_MAPPING[f'{state}.{data.get("exc_type")}']
+            except KeyError:
+                pass
+        return result
+
     def _get_result_meta(self, job_id, result, state, traceback, request):
-        if traceback:
-            result = None
+        data = result if state == 'SUCCESS' else {}
+        dct_request = request.__dict__
         meta = {
-            'taskId': request.task,
+            'taskId': dct_request.get('task', dct_request.get('name', None)),
             'jobId': job_id,
-            'data': result or {},
+            'data': data,
             'metadata': {
-                'status': STATUS_MAPPING[state],
-                'error': traceback or None
+                'status': self._get_result_state(state, result),
+                'error': traceback or (result if state == 'FAILURE' else None)
             }
         }
         return meta

@@ -1,5 +1,5 @@
 broker_url = 'sqs://<AWSAccessKeyId>:<AWSSecretAccessKey>@localhost:9324/'
-broker_transport = 'src.transport:SQSTransport'
+broker_transport = 'ergo_celery.transport:SQSTransport'
 task_serializer = 'json'
 result_serializer = 'json'
 accept_content = ['json']
@@ -23,5 +23,5 @@ task_routes = {
     'app.tasks.calipso*': {'queue': 'fifo_req_calipso'}
 }
 
-# worker_consumer = 'src.ergo_consumer:ErgoConsumer'
-result_backend = 'src.sqs_backend:SQSBackend://http://localhost:9324/queue/fifo_res'
+# worker_consumer = 'ergo_celery.ergo_consumer:ErgoConsumer'
+result_backend = 'ergo_celery.sqs_backend:SQSBackend://http://localhost:9324/queue/fifo_res'
