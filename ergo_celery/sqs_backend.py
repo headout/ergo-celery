@@ -14,7 +14,7 @@ STATUS_MAPPING = {
 class SQSBackend(Backend):
     def __init__(self, *args, max_buffer_size=SQS_MAX_MESSAGES, **kwargs):
         super().__init__(*args, **kwargs)
-        self.max_buffer_size = 1 or max_buffer_size
+        self.max_buffer_size = max_buffer_size
         self._pending_results = {}
         self._connection = self.connection_for_write()
 

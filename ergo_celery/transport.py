@@ -58,7 +58,7 @@ class ErgoChannel(SQS.Channel):
 
     def _message_to_python(self, message, queue_name, queue):
         payload = super()._message_to_python(message, queue_name, queue)
-        logger.warn(payload)
+        logger.debug(payload)
         sqs_msg = payload['properties']['delivery_info']['sqs_message']
         if 'headers' not in payload and sqs_msg['Attributes'].get('MessageGroupId', None):
             # Detected Ergo Protocol, so convert it to Proto 1-compatible schema
