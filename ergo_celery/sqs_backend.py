@@ -1,4 +1,6 @@
-from celery.backends.asynchronous import AsyncBackendMixin, BaseResultConsumer
+from datetime import datetime
+from importlib import __import__
+
 from celery.backends.base import Backend
 from celery.utils.log import get_logger
 from kombu.transport.SQS import SQS_MAX_MESSAGES
@@ -11,12 +13,26 @@ STATUS_MAPPING = {
     'FAILURE.NotRegistered': 404
 }
 
+RESULT_BUFFER_NAME = 'ergo.results'
+
 class SQSBackend(Backend):
-    def __init__(self, *args, max_buffer_size=SQS_MAX_MESSAGES, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.max_buffer_size = max_buffer_size
+        self.max_buffer_size = self.app.conf.get('ergo_result_buffer_size', SQS_MAX_MESSAGES)
+        self._buffer_cls: str = self.app.conf.get('ergo_result_buffer_cls')
+        if self._buffer_cls:
+            self._setup_buffer()
         self._pending_results = {}
         self._connection = self.connection_for_write()
+
+    def _setup_buffer(self):
+        try:
+            module, cls = self._buffer_cls.split(':')
+            clstype = getattr(__import__(module, fromlist=(cls,)), cls)
+            self._buffer = clstype(RESULT_BUFFER_NAME, self.app, max_size=self.max_buffer_size)
+        except (ImportError, AttributeError):
+            logger.exception('Unable to import custom buffer class')
+            self._buffer_cls = None
 
     def connection_for_write(self):
         return self.ensure_connected(
@@ -25,8 +41,13 @@ class SQSBackend(Backend):
     def ensure_connected(self, conn):
         return conn.ensure_connection()
 
-    def _drain_results(self):
-        msgs = self._pending_results.values()
+    def should_clear_buffer(self):
+        cur_size = len(self._buffer) if self._buffer_cls else len(self._pending_results)
+        print(cur_size)
+        return cur_size >= self.max_buffer_size
+
+    def drain_results(self):
+        msgs = self._buffer.clear() if self._buffer_cls else self._pending_results.values()
         try:
             success, failures = self._connection.default_channel.put_bulk(self.as_name(), msgs)
             if failures:
@@ -37,11 +58,18 @@ class SQSBackend(Backend):
             logger.info(f'Successfully pushed {len(success)} results!')
             self._pending_results.clear()
 
-    def _add_pending_result(self, task_id, result):
+    def _add_pending_result_to_mem(self, task_id, result):
         if task_id not in self._pending_results:
             self._pending_results[task_id] = result
-            if len(self._pending_results) == self.max_buffer_size:
-                self._drain_results()
+
+    def _add_pending_result_to_redis(self, task_id, result):
+        self._buffer.put(result)
+
+    def add_pending_result(self, task_id, result):
+        if self._buffer_cls:
+            self._add_pending_result_to_redis(task_id, result)
+        else:
+            self._add_pending_result_to_mem(task_id, result)
 
     def _get_result_state(self, state, data):
         result = STATUS_MAPPING[state]
@@ -69,7 +97,20 @@ class SQSBackend(Backend):
     def _store_result(self, task_id, result, state,
                       traceback=None, request=None, **kwargs):
         meta = self._get_result_meta(task_id, result, state, traceback, request)
-        self._add_pending_result(task_id, meta)
+
+        retry_limit = 3
+        current_retry_attempt = 1
+        while current_retry_attempt <= retry_limit:
+            try:
+                self.add_pending_result(task_id, meta)
+            except Exception as ex:
+                logger.exception(f'[{current_retry_attempt}/{retry_limit}] Failed to add pending result')
+            else:
+                break
+            current_retry_attempt += 1
+
+        if self.should_clear_buffer():
+            self.drain_results()
 
     def as_uri(self, include_password=True):
         return self.url.split('://', 1)[1]
