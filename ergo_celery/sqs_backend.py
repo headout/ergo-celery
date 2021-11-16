@@ -5,6 +5,8 @@ from celery.backends.base import Backend
 from celery.utils.log import get_logger
 from kombu.transport.SQS import SQS_MAX_MESSAGES
 
+from ergo_celery.transport import SQSTransport
+
 logger = get_logger(__name__)
 
 STATUS_MAPPING = {
@@ -36,7 +38,7 @@ class SQSBackend(Backend):
 
     def connection_for_write(self):
         return self.ensure_connected(
-            self.app.connection_for_write(self.as_uri()))
+            self.app.connection_for_write(self.as_uri(), transport=SQSTransport))
 
     def ensure_connected(self, conn):
         return conn.ensure_connection()

@@ -25,7 +25,7 @@ task_routes = {
 }
 
 # worker_consumer = 'ergo_celery.ergo_consumer:ErgoConsumer'
-result_backend = 'ergo_celery.sqs_backend:SQSBackend://ergosqs://localhost:9324/queue/fifo_res'
+result_backend = 'ergo_celery.sqs_backend:SQSBackend://http://localhost:9324/queue/fifo_res'
 
 ergo_result_buffer_size = 2
 ergo_result_buffer_cls = 'ergo_celery.redis_buffer:RedisResultBuffer'
