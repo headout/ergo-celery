@@ -43,7 +43,6 @@ class SQSBackend(Backend):
 
     def should_clear_buffer(self):
         cur_size = len(self._buffer) if self._buffer_cls else len(self._pending_results)
-        print(cur_size)
         return cur_size >= self.max_buffer_size
 
     def drain_results(self):
