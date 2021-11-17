@@ -32,13 +32,13 @@ class RedisResultBuffer(object):
             client.rpush(self.name, dumps(msg))
 
     def clear(self) -> List[Dict]:
-        # with self._new_buffer() as obj:
-        #     obj.buffer.
         with self._client() as client:
-            arr = client.lrange(self.name, 0, self.max_size)
-            msgs = [
-                loads(res.decode())
-                for res in arr
-            ]
-            client.ltrim(self.name, self.max_size + 1, -1)
-            return msgs
+            with client.pipeline(transaction=True) as pipe:
+                pipe.lrange(self.name, 0, self.max_size - 1)
+                pipe.ltrim(self.name, self.max_size, -1)
+                arr, _ = pipe.execute()
+                msgs = [
+                    loads(res.decode())
+                    for res in arr
+                ]
+                return msgs

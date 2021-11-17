@@ -29,3 +29,4 @@ result_backend = 'ergo_celery.sqs_backend:SQSBackend://http://localhost:9324/que
 
 ergo_result_buffer_size = 2
 ergo_result_buffer_cls = 'ergo_celery.redis_buffer:RedisResultBuffer'
+ergo_result_buffer_timeout_secs = 60

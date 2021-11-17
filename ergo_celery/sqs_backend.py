@@ -48,7 +48,11 @@ class SQSBackend(Backend):
         return cur_size >= self.max_buffer_size
 
     def drain_results(self):
+        logger.debug('Checking any results to push...')
         msgs = self._buffer.clear() if self._buffer_cls else self._pending_results.values()
+        if not msgs:
+            logger.debug('Nothing to push.')
+            return
         try:
             success, failures = self._connection.default_channel.put_bulk(self.as_name(), msgs)
             if failures:
@@ -109,9 +113,6 @@ class SQSBackend(Backend):
             else:
                 break
             current_retry_attempt += 1
-
-        if self.should_clear_buffer():
-            self.drain_results()
 
     def as_uri(self, include_password=True):
         return self.url.split('://', 1)[1]
