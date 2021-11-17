@@ -88,13 +88,18 @@ class SQSBackend(Backend):
     def _get_result_meta(self, job_id, result, state, traceback, request):
         data = result if state == 'SUCCESS' else {}
         dct_request = request.__dict__
+        status_code = self._get_result_state(state, result)
+        error_dct = {
+            'message': f'{result.get("exc_module")}.{result.get("exc_type")}: {result.get("exc_message")[0]}',
+            'traceback': traceback or result
+        } if status_code != 200 else None
         meta = {
             'taskId': dct_request.get('task', dct_request.get('name', None)),
             'jobId': job_id,
             'data': data,
             'metadata': {
-                'status': self._get_result_state(state, result),
-                'error': traceback or (result if state == 'FAILURE' else None)
+                'status': status_code,
+                'error': error_dct
             }
         }
         return meta
