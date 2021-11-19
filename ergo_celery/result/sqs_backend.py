@@ -9,6 +9,8 @@ from ergo_celery.request.transport import SQSTransport
 
 logger = get_logger(__name__)
 
+STATES_TO_IGNORE = ('REVOKED', 'RETRY')
+
 STATUS_MAPPING = {
     'SUCCESS': 200,
     'FAILURE': 400,
@@ -106,6 +108,9 @@ class SQSBackend(Backend):
 
     def _store_result(self, task_id, result, state,
                       traceback=None, request=None, **kwargs):
+        if state in STATES_TO_IGNORE:
+            logger.info(f'Task "{task_id}" marked as {state}. Ignoring...')
+            return
         meta = self._get_result_meta(task_id, result, state, traceback, request)
 
         retry_limit = 3

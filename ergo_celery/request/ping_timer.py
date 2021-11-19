@@ -22,5 +22,5 @@ class SQSPingTimerStep(bootsteps.StartStopStep):
             self.tref = None
 
     def ping_active_tasks(self, worker):
-        for req in worker.state.active_requests:
-            req.ping_message()
+        for req in tuple(worker.state.active_requests):
+            req.ping_message(worker)
