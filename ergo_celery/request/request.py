@@ -29,9 +29,9 @@ class SQSRequest(Request):
             try:
                 if self.need_more_exec_time():
                     logger.info(f'Task "{self.humaninfo()}" still pending (attempt {self._attempt}). Increasing visibility timeout...')
+                    self._attempt += 1
                     self.increase_visibility_timeout(
                         min(self._attempt * self.init_visible_timeout, MAX_VISIBILITY_TIMEOUT)
                     )
-                    self._attempt += 1
             finally:
                 self._lock.release()
