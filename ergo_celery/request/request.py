@@ -31,8 +31,13 @@ class SQSRequest(Request):
         except ClientError as e:
             # maybe expired? cancel request
             logger.warn(f'Unable to change visibility timeout of {task_str}', exc_info=e)
-            if 'receipt handle has expired' in e.response.get('Error', {}).get('Message', 'Unknown'):
-                self.cancel(worker.pool)
+            try:
+                if 'receipt handle has expired' in e.response.get('Error', {}).get('Message', 'Unknown'):
+                    self.cancel(worker.pool)
+            except NotImplementedError:
+                pass
+            except Exception as ex:
+                logger.warn(f'Unable to kill expired task {task_str}', exc_info=ex)
         except Exception:
             logger.exception(f'Unable to change visibility timeout of {task_str}')
         else:
