@@ -10,11 +10,11 @@ class SQSPingTimerStep(bootsteps.StartStopStep):
     def __init__(self, worker, *args, **kwargs):
         self.tref = None
         self._backend = worker.app.backend
-        self.timeout = 4
+        self.interval = worker.app.conf.get('ergo_task_ping_interval_secs', 2)
 
     def start(self, worker):
         self.tref = worker.timer.call_repeatedly(
-            self.timeout, self.ping_active_tasks, (worker,))
+            self.interval, self.ping_active_tasks, (worker,))
 
     def stop(self, worker):
         if self.tref:
