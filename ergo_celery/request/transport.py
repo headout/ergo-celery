@@ -2,14 +2,19 @@ import uuid
 from json.decoder import JSONDecodeError
 from queue import Empty
 
+from botocore.exceptions import ClientError
 from kombu.asynchronous.aws.sqs.message import AsyncMessage
 from kombu.serialization import dumps, loads
 from kombu.transport import SQS
+
+from ergo_celery.request.message import SQSMessage
 
 logger = SQS.logger
 
 
 class ErgoChannel(SQS.Channel):
+    Message = SQSMessage
+    
     DEFAULT_CONTENT_TYPE = 'application/json'
     DEFAULT_CONTENT_ENCODING = 'utf-8'
     MESSAGE_ATTRIBUTES = ['ApproximateReceiveCount']
@@ -80,6 +85,28 @@ class ErgoChannel(SQS.Channel):
                     logger.error(f'Received undecodable message', exc_info=e)
                     continue
                 callbacks[qname](msg_parsed)
+    
+    def change_visibility_timeout(self, delivery_tag, new_visibility_timeout):
+        try:
+            message = self.qos.get(delivery_tag).delivery_info
+            sqs_message = message['sqs_message']
+        except KeyError as ex:
+            logger.warn('Unable to get message info', exc_info=ex)
+            return
+        queue = None
+        if 'routing_key' in message:
+            queue = self.canonical_queue_name(message['routing_key'])
+        try:
+            logger.info(message['sqs_queue'] + '\n' + sqs_message['ReceiptHandle'] + f'\n{new_visibility_timeout}')
+            client = self.sqs(queue)
+            client.change_message_visibility(
+                QueueUrl=message['sqs_queue'],
+                ReceiptHandle=sqs_message['ReceiptHandle'],
+                VisibilityTimeout=int(new_visibility_timeout)
+            )
+        except ClientError as ex:
+            logger.warn('Errored changing visibility timeout', exc_info=ex)
+            logger.warn(ex.response)
 
     # TODO: Better to add the FIFO queue support in Kombu itself (reminder: Raise a PR)
     def _get_bulk(self, queue,

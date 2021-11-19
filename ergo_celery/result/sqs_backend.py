@@ -5,7 +5,7 @@ from celery.backends.base import Backend
 from celery.utils.log import get_logger
 from kombu.transport.SQS import SQS_MAX_MESSAGES
 
-from ergo_celery.transport import SQSTransport
+from ergo_celery.request.transport import SQSTransport
 
 logger = get_logger(__name__)
 
