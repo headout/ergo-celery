@@ -20,7 +20,7 @@ class SQSRequest(Request):
     def need_more_exec_time(self):
         duration = time() - self.time_start
         logger.debug(f'PING {self.humaninfo()}! Duration: {duration}')
-        return duration >= 0.50 * (self._attempt * self.init_visible_timeout)
+        return duration >= 0.69 * (self._attempt * self.init_visible_timeout)
 
     def increase_visibility_timeout(self, new_timeout, worker):
         task_str = self.humaninfo()
