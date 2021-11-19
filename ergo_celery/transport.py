@@ -15,10 +15,15 @@ class ErgoChannel(SQS.Channel):
     MESSAGE_ATTRIBUTES = ['ApproximateReceiveCount']
 
     def basic_reject(self, delivery_tag, requeue=False):
+        logger.info(f'Rejecting message "{delivery_tag}"')
         if not requeue:
             self.basic_ack(delivery_tag, requeue)
         else:
             super().basic_reject(delivery_tag, requeue)
+
+    def basic_ack(self, delivery_tag, multiple=False):
+        super().basic_ack(delivery_tag, multiple=multiple)
+        logger.info(f'Acknowledged message "{delivery_tag}"')
 
     def put_bulk(self, queue, messages, **kwargs):
         q_url = self._new_queue(queue)
