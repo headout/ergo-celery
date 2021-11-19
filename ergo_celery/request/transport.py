@@ -2,7 +2,6 @@ import uuid
 from json.decoder import JSONDecodeError
 from queue import Empty
 
-from botocore.exceptions import ClientError
 from kombu.asynchronous.aws.sqs.message import AsyncMessage
 from kombu.serialization import dumps, loads
 from kombu.transport import SQS
@@ -26,9 +25,18 @@ class ErgoChannel(SQS.Channel):
         else:
             super().basic_reject(delivery_tag, requeue)
 
+    def _message_humaninfo(self, delivery_tag):
+        try:
+            message = self.qos.get(delivery_tag).delivery_info
+            sqs_message = message['sqs_message']
+            return f'{sqs_message["Attributes"]["MessageGroupId"]}[{sqs_message["MessageId"]}]'
+        except KeyError as ex:
+            logger.warn('Unable to generate string repr', exc_info=ex)
+            return delivery_tag
+
     def basic_ack(self, delivery_tag, multiple=False):
         super().basic_ack(delivery_tag, multiple=multiple)
-        logger.info(f'Acknowledged message "{delivery_tag}"')
+        logger.info(f'Acknowledged message "{self._message_humaninfo(delivery_tag)}"')
 
     def put_bulk(self, queue, messages, **kwargs):
         q_url = self._new_queue(queue)
@@ -96,17 +104,12 @@ class ErgoChannel(SQS.Channel):
         queue = None
         if 'routing_key' in message:
             queue = self.canonical_queue_name(message['routing_key'])
-        try:
-            logger.info(message['sqs_queue'] + '\n' + sqs_message['ReceiptHandle'] + f'\n{new_visibility_timeout}')
-            client = self.sqs(queue)
-            client.change_message_visibility(
-                QueueUrl=message['sqs_queue'],
-                ReceiptHandle=sqs_message['ReceiptHandle'],
-                VisibilityTimeout=int(new_visibility_timeout)
-            )
-        except ClientError as ex:
-            logger.warn('Errored changing visibility timeout', exc_info=ex)
-            logger.warn(ex.response)
+        self.sqs(queue).change_message_visibility(
+            QueueUrl=message['sqs_queue'],
+            ReceiptHandle=sqs_message['ReceiptHandle'],
+            VisibilityTimeout=int(new_visibility_timeout)
+        )
+
 
     # TODO: Better to add the FIFO queue support in Kombu itself (reminder: Raise a PR)
     def _get_bulk(self, queue,

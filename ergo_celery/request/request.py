@@ -17,16 +17,18 @@ class SQSRequest(Request):
         self.init_visible_timeout = self.app.conf.broker_transport_options.get('visibility_timeout', Channel.default_visibility_timeout)
 
     def need_more_exec_time(self):
-        return (time() - self.time_start) >= 0.75 * (self._attempt * self.init_visible_timeout)
+        duration = time() - self.time_start
+        logger.debug(f'PING {self.humaninfo()}! Duration: {duration}')
+        return duration >= 0.50 * (self._attempt * self.init_visible_timeout)
 
     def increase_visibility_timeout(self, new_timeout):
-        self.message.change_visibility_timeout(new_timeout, errors=self._connection_errors)
+        self.message.change_visibility_timeout(new_timeout, self.humaninfo(), errors=self._connection_errors)
 
     def ping_message(self):
         if self._lock.acquire(blocking=False):
             try:
                 if self.need_more_exec_time():
-                    logger.info(f'Task "{self.message.delivery_tag}" still pending (attempt {self._attempt}). Increasing visibility timeout...')
+                    logger.info(f'Task "{self.humaninfo()}" still pending (attempt {self._attempt}). Increasing visibility timeout...')
                     self.increase_visibility_timeout(
                         min(self._attempt * self.init_visible_timeout, MAX_VISIBILITY_TIMEOUT)
                     )
