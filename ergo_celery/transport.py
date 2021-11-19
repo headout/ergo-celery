@@ -110,6 +110,7 @@ class ErgoChannel(SQS.Channel):
             resp = self.sqs(queue=queue).receive_message(
                 QueueUrl=q_url, MaxNumberOfMessages=max_count,
                 WaitTimeSeconds=self.wait_time_seconds,
+                VisibilityTimeout=self.visibility_timeout,
                 AttributeNames=['MessageGroupId'])
             if resp.get('Messages'):
                 for m in resp['Messages']:
