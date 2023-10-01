@@ -44,7 +44,7 @@ class ErgoChannel(SQS.Channel):
             {
                 'Id': str(idx),
                 'MessageBody': dumps(msg, 'json')[2],
-                'MessageGroupId': msg['taskId'],
+                'MessageGroupId': msg['jobId'],
                 'MessageDeduplicationId': str(uuid.uuid4())
             }
             for idx, msg in enumerate(messages)
