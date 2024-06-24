@@ -47,13 +47,13 @@ tzdata = ["tzdata"]
 
 [[package]]
 name = "billiard"
-version = "3.6.4.0"
+version = "4.2.0"
 description = "Python multiprocessing fork with improvements and bugfixes"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 files = [
-    {file = "billiard-3.6.4.0-py3-none-any.whl", hash = "sha256:87103ea78fa6ab4d5c751c4909bcff74617d985de7fa8b672cf8618afd5a875b"},
-    {file = "billiard-3.6.4.0.tar.gz", hash = "sha256:299de5a8da28a783d51b197d496bef4f1595dd023a93a4f59dde1886ae905547"},
+    {file = "billiard-4.2.0-py3-none-any.whl", hash = "sha256:07aa978b308f334ff8282bd4a746e681b3513db5c9a514cbdd810cbbdc19714d"},
+    {file = "billiard-4.2.0.tar.gz", hash = "sha256:9a3c3184cb275aa17a732f93f65b20c525d3d9f253722d26a82194803ade5a2c"},
 ]
 
 [[package]]
@@ -96,61 +96,62 @@ crt = ["awscrt (==0.20.11)"]
 
 [[package]]
 name = "celery"
-version = "5.2.0"
+version = "5.3.0"
 description = "Distributed Task Queue."
 optional = false
-python-versions = ">=3.7,"
+python-versions = ">=3.7"
 files = [
-    {file = "celery-5.2.0-py3-none-any.whl", hash = "sha256:1664b8cf5051c86188e86f1afb85213927f92b8818e2315e34b010da0d767b98"},
-    {file = "celery-5.2.0.tar.gz", hash = "sha256:4d858a8fe53c07a9f0cbf8cf1da28e8abe5464d0aba5713bf83908e74277734b"},
+    {file = "celery-5.3.0-py3-none-any.whl", hash = "sha256:95d29f9a93f41c4b122fddf1fe3ef13f872029dca4ad1f9af4f1a414442ceecf"},
+    {file = "celery-5.3.0.tar.gz", hash = "sha256:1eaba5ee14d8c8c0bed8f6063e5e10dabdbcf23503a861cf0e10b7221d99cb0d"},
 ]
 
 [package.dependencies]
-billiard = ">=3.6.4.0,<4.0"
-click = ">=8.0,<9.0"
-click-didyoumean = ">=0.0.3"
+"backports.zoneinfo" = {version = ">=0.2.1", markers = "python_version < \"3.9\""}
+billiard = ">=4.1.0,<5.0"
+click = ">=8.1.2,<9.0"
+click-didyoumean = ">=0.3.0"
 click-plugins = ">=1.1.1"
 click-repl = ">=0.2.0"
 kombu = [
-    {version = ">=5.2.1,<6.0"},
-    {version = "*", extras = ["sqs"], optional = true, markers = "extra == \"sqs\""},
+    {version = ">=5.3.0,<6.0"},
+    {version = ">=5.3.0", extras = ["sqs"], optional = true, markers = "extra == \"sqs\""},
 ]
-pytz = ">0.0-dev"
-setuptools = "*"
+python-dateutil = ">=2.8.2"
+tzdata = ">=2022.7"
 vine = ">=5.0.0,<6.0"
 
 [package.extras]
-arangodb = ["pyArango (>=1.3.2)"]
-auth = ["cryptography"]
-azureblockblob = ["azure-storage-blob (==12.9.0)"]
+arangodb = ["pyArango (>=2.0.1)"]
+auth = ["cryptography (==41.0.1)"]
+azureblockblob = ["azure-storage-blob (>=12.15.0)"]
 brotli = ["brotli (>=1.0.0)", "brotlipy (>=0.7.0)"]
-cassandra = ["cassandra-driver (<3.21.0)"]
-consul = ["python-consul2"]
-cosmosdbsql = ["pydocumentdb (==2.3.2)"]
+cassandra = ["cassandra-driver (>=3.25.0,<4)"]
+consul = ["python-consul2 (==0.1.5)"]
+cosmosdbsql = ["pydocumentdb (==2.3.5)"]
 couchbase = ["couchbase (>=3.0.0)"]
-couchdb = ["pycouchdb"]
-django = ["Django (>=1.11)"]
-dynamodb = ["boto3 (>=1.9.178)"]
-elasticsearch = ["elasticsearch"]
-eventlet = ["eventlet (>=0.26.1)"]
-gevent = ["gevent (>=1.0.0)"]
-librabbitmq = ["librabbitmq (>=1.5.0)"]
-memcache = ["pylibmc"]
-mongodb = ["pymongo[srv] (>=3.3.0,<3.12.1)"]
-msgpack = ["msgpack"]
-pymemcache = ["python-memcached"]
-pyro = ["pyro4"]
-pytest = ["pytest-celery"]
-redis = ["redis (>=3.2.0)"]
-s3 = ["boto3 (>=1.9.125)"]
+couchdb = ["pycouchdb (==1.14.2)"]
+django = ["Django (>=2.2.28)"]
+dynamodb = ["boto3 (>=1.26.143)"]
+elasticsearch = ["elasticsearch (<8.0)"]
+eventlet = ["eventlet (>=0.32.0)"]
+gevent = ["gevent (>=1.5.0)"]
+librabbitmq = ["librabbitmq (>=2.0.0)"]
+memcache = ["pylibmc (==1.6.3)"]
+mongodb = ["pymongo[srv] (>=4.0.2)"]
+msgpack = ["msgpack (==1.0.5)"]
+pymemcache = ["python-memcached (==1.59)"]
+pyro = ["pyro4 (==4.82)"]
+pytest = ["pytest-celery (==0.0.0)"]
+redis = ["redis (>=4.5.2)"]
+s3 = ["boto3 (>=1.26.143)"]
 slmq = ["softlayer-messaging (>=1.0.3)"]
-solar = ["ephem"]
-sqlalchemy = ["sqlalchemy"]
-sqs = ["kombu[sqs]"]
+solar = ["ephem (==4.1.4)"]
+sqlalchemy = ["sqlalchemy (>=1.4.48,<2.1)"]
+sqs = ["kombu[sqs] (>=5.3.0)"]
 tblib = ["tblib (>=1.3.0)", "tblib (>=1.5.0)"]
 yaml = ["PyYAML (>=3.10)"]
 zookeeper = ["kazoo (>=1.3.1)"]
-zstd = ["zstandard"]
+zstd = ["zstandard (==0.21.0)"]
 
 [[package]]
 name = "click"
@@ -319,17 +320,6 @@ files = [
 six = ">=1.5"
 
 [[package]]
-name = "pytz"
-version = "2024.1"
-description = "World timezone definitions, modern and historical"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pytz-2024.1-py2.py3-none-any.whl", hash = "sha256:328171f4e3623139da4983451950b28e95ac706e13f3f2630a879749e7a8b319"},
-    {file = "pytz-2024.1.tar.gz", hash = "sha256:2a29735ea9c18baf14b448846bde5a48030ed267578472d8955cd0e7443a9812"},
-]
-
-[[package]]
 name = "redis"
 version = "3.5.3"
 description = "Python client for Redis key-value store"
@@ -359,21 +349,6 @@ botocore = ">=1.33.2,<2.0a.0"
 
 [package.extras]
 crt = ["botocore[crt] (>=1.33.2,<2.0a.0)"]
-
-[[package]]
-name = "setuptools"
-version = "70.1.0"
-description = "Easily download, build, install, upgrade, and uninstall Python packages"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "setuptools-70.1.0-py3-none-any.whl", hash = "sha256:d9b8b771455a97c8a9f3ab3448ebe0b29b5e105f1228bba41028be116985a267"},
-    {file = "setuptools-70.1.0.tar.gz", hash = "sha256:01a1e793faa5bd89abc851fa15d0a0db26f160890c7102cd8dce643e886b47f5"},
-]
-
-[package.extras]
-docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "pyproject-hooks (!=1.1)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
-testing = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.14)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "jaraco.test", "mypy (==1.10.0)", "packaging (>=23.2)", "pip (>=19.1)", "pyproject-hooks (!=1.1)", "pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy", "pytest-perf", "pytest-ruff (>=0.3.2)", "pytest-subprocess", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
 name = "six"
@@ -450,4 +425,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.9"
-content-hash = "0df918670a91db05413f33a64cb7d42cd28ec23ca4f6ea2adb3cbadbc0fd2402"
+content-hash = "b17aba3a3595066f6fae5ec8a017ca0104ed309f8978304602e9a64699f22af8"
