@@ -55,3 +55,5 @@ class SQSRequest(Request):
                     )
             finally:
                 self._lock.release()
+        else:
+            logger.info(f'Task "{self.humaninfo()}" locking failed during periodic ping')
